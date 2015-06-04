@@ -26,3 +26,5 @@ Step 3 started: sent "Szia vilag" (hello world in hungarian) to the IRC server.
 
 Step 4 done: bot can be stopped by
 p1738j: please stop
+
+Step 5: Done - added an EU grant agreement as the "book" to generate strings from.
