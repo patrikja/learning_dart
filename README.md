@@ -19,3 +19,7 @@ USER username 8 * :p1738j
 JOIN ##dart-irc-codelab
 PRIVMSG ##dart-irc-codelab :Szia vilag
 QUIT
+
+----------------
+
+Step 3 started: sent "Szia vilag" (hello world in hungarian) to the IRC server.
