@@ -10,3 +10,12 @@ wget http://ngircd.barton.de/pub/ngircd/ngircd-22.1.tar.xz
 main() {
   print("Hello world");
 }
+
+Step 2 done:
+nc -l 6668 &
+dart --checked main.dart
+NICK p1738j
+USER username 8 * :p1738j
+JOIN ##dart-irc-codelab
+PRIVMSG ##dart-irc-codelab :Szia vilag
+QUIT
