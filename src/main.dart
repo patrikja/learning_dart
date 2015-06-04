@@ -1,14 +1,16 @@
+// Copyright (c) 2015, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math';
 
-/// Given a connected [socket] runs the IRC bot.
-void handleIrcSocket(Socket socket) {
+final RegExp ircMessageRegExp =
+    new RegExp(r":([^!]+)!([^ ]+) PRIVMSG ([^ ]+) :(.*)");
+
+void handleIrcSocket(Socket socket, SentenceGenerator sentenceGenerator) {
   final nick = "p1738j";
-
-  void authenticate() {
-    socket.write('NICK $nick\r\n');
-    socket.write('USER username 8 * :$nick\r\n');
-  }
 
   /// Sends a message to the IRC server.
   ///
@@ -17,8 +19,18 @@ void handleIrcSocket(Socket socket) {
     socket.write('$message\r\n');
   }
 
-  final RegExp ircMessageRegExp =
-      new RegExp(r":([^!]+)!([^ ]+) PRIVMSG ([^ ]+) :(.*)");
+  void authenticate() {
+    writeln('NICK $nick');
+    writeln('USER username 8 * :$nick');
+  }
+
+  void say(String message) {
+    if (message.length > 120) {
+      // IRC doesn't like it when lines are too long.
+      message = message.substring(0, 120);
+    }
+    writeln('PRIVMSG ##dart-irc-codelab :$message');
+  }
 
   void handleMessage(String msgNick,
                      String server,
@@ -27,10 +39,14 @@ void handleIrcSocket(Socket socket) {
     if (msg.startsWith("$nick:")) {
       // Direct message to us.
       var text = msg.substring(msg.indexOf(":") + 1).trim();
-      if (text == "please stop") {
-        print("Leaving by request of $msgNick");
-        writeln("QUIT");
-        return;
+      switch (text) {
+        case "please leave":
+          print("Leaving by request of $msgNick");
+          writeln("QUIT");
+          return;
+        case "talk to me":
+          say(sentenceGenerator.generateRandomSentence());
+          return;
       }
     }
     print("$msgNick: $msg");
@@ -55,23 +71,22 @@ void handleIrcSocket(Socket socket) {
       .listen(handleServerLine,
               onDone: socket.close);
 
-
   authenticate();
   writeln('JOIN ##dart-irc-codelab');
-  writeln('PRIVMSG ##dart-irc-codelab :Szia világ! ∀ ε ∃ δ trying out unicode');
+  say('Szia világ! ∀ ε ∃ δ');
   // writeln('QUIT');
   // no destroy?
 }
 
-void runIrcBot() {
+void runIrcBot(SentenceGenerator generator) {
   Socket.connect("chat.freenode.net", 6667)
 //  Socket.connect("localhost", 6668)
-      .then(handleIrcSocket);
+      .then((socket) => handleIrcSocket(socket, generator));
 }
-
 
 class SentenceGenerator {
   final _db = new Map<String, Set<String>>();
+  final rng = new Random();
 
   void addBook(String fileName) {
     var content = new File(fileName).readAsStringSync();
@@ -82,7 +97,7 @@ class SentenceGenerator {
     var words = content
         .replaceAll("\n", " ") // Treat new lines as if they were spaces.
         .replaceAll("\r", "")  // Discard "\r".
-        .replaceAll(".", " .") // Add space before ".", to simplify splitting.
+        .replaceAll(".", " .") // Add space before "." to simplify splitting.
         .split(" ")
         .where((String word) => word != "");
 
@@ -102,9 +117,36 @@ class SentenceGenerator {
       previous = current;
     }
   }
+
+  int get keyCount => _db.length;
+
+  String pickRandomPair() => _db.keys.elementAt(rng.nextInt(keyCount));
+
+  String pickRandomThirdWord(String firstWord, String secondWord) {
+    var key = "$firstWord $secondWord";
+    var possibleSequences = _db[key];
+    return possibleSequences.elementAt(rng.nextInt(possibleSequences.length));
+  }
+
+  String generateRandomSentence() {
+    var start = pickRandomPair();
+    var startingWords = start.split(" ");
+    var preprevious = startingWords[0];
+    var previous = startingWords[1];
+    var sentence = [preprevious, previous];
+    var current;
+    do {
+      current = pickRandomThirdWord(preprevious, previous);
+      sentence.add(current);
+      preprevious = previous;
+      previous = current;
+    } while (current != ".");
+    return sentence.join(" ");
+  }
 }
 
 void main(arguments) {
   var generator = new SentenceGenerator();
   arguments.forEach(generator.addBook);
+  runIrcBot(generator);
 }

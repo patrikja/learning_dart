@@ -28,3 +28,8 @@ Step 4 done: bot can be stopped by
 p1738j: please stop
 
 Step 5: Done - added an EU grant agreement as the "book" to generate strings from.
+
+Step 6: Done - can generate random legalese like
+"working papers related to ‘beneficiaries with accounts established in his field ."
+
+Step 7: Done - EU grant agreement based nonsense can now be requested via IRC
